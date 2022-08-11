@@ -1,149 +1,86 @@
-/*
- * File: getline.c
- * Auth: Adeboye Victor Oyekanmi
- *       Favour Wright
- */
-
-#include "shell.h"
-
-void *_realloc(void *ptr, unsigned int old_size, unsigned int new_size);
-void assign_lineptr(char **lineptr, size_t *n, char *buffer, size_t b);
-ssize_t _getline(char **lineptr, size_t *n, FILE *stream);
+#include "main.h"
 
 /**
- * _realloc - Reallocates a memory block using malloc and free.
- * @ptr: A pointer to the memory previously allocated.
- * @old_size: The size in bytes of the allocated space for ptr.
- * @new_size: The size in bytes for the new memory block.
+ * _getline - custom getline currently reads 1 char at a time
+ * @buffer: address of pointer to input commands buffer
+ * @limit: maxsize of input character string, realloc if necessary
  *
- * Return: If new_size == old_size - ptr.
- *         If new_size == 0 and ptr is not NULL - NULL.
- *         Otherwise - a pointer to the reallocated memory block.
+ * Return: number of characters written
  */
-void *_realloc(void *ptr, unsigned int old_size, unsigned int new_size)
+ssize_t _getline(char **buffer, size_t *limit)
 {
-	void *mem;
-	char *ptr_copy, *filler;
-	unsigned int index;
+	ssize_t count;
 
-	if (new_size == old_size)
-		return (ptr);
+	count = _readline(STDIN_FILENO, buffer, limit);
 
-	if (ptr == NULL)
-	{
-		mem = malloc(new_size);
-		if (mem == NULL)
-			return (NULL);
-
-		return (mem);
-	}
-
-	if (new_size == 0 && ptr != NULL)
-	{
-		free(ptr);
-		return (NULL);
-	}
-
-	ptr_copy = ptr;
-	mem = malloc(sizeof(*ptr_copy) * new_size);
-	if (mem == NULL)
-	{
-		free(ptr);
-		return (NULL);
-	}
-
-	filler = mem;
-
-	for (index = 0; index < old_size && index < new_size; index++)
-		filler[index] = *ptr_copy++;
-
-	free(ptr);
-	return (mem);
+	return (count);
 }
 
 /**
- * assign_lineptr - Reassigns the lineptr variable for _getline.
- * @lineptr: A buffer to store an input string.
- * @n: The size of lineptr.
- * @buffer: The string to assign to lineptr.
- * @b: The size of buffer.
- */
-void assign_lineptr(char **lineptr, size_t *n, char *buffer, size_t b)
-{
-	if (*lineptr == NULL)
-	{
-		if (b > 120)
-			*n = b;
-		else
-			*n = 120;
-		*lineptr = buffer;
-	}
-	else if (*n < b)
-	{
-		if (b > 120)
-			*n = b;
-		else
-			*n = 120;
-		*lineptr = buffer;
-	}
-	else
-	{
-		_strcpy(*lineptr, buffer);
-		free(buffer);
-	}
-}
-
-/**
- * _getline - Reads input from a stream.
- * @lineptr: A buffer to store the input.
- * @n: The size of lineptr.
- * @stream: The stream to read from.
+ * _readline - custom getline currently reads 1 char at a time from a file
+ * descriptor
+ * @fd: file descriptor of the file to use for reading
+ * @buffer: address of pointer to input commands buffer
+ * @limit: maxsize of input character string, realloc if necessary
  *
- * Return: The number of bytes read.
+ * Return: number of characters written
  */
-ssize_t _getline(char **lineptr, size_t *n, FILE *stream)
+ssize_t _readline(int fd, char **buffer, size_t *limit)
 {
-	static ssize_t input;
-	ssize_t ret;
-	char c = 'x', *buffer;
-	int r;
+	unsigned int i, j;
+	size_t charcount, iterations;
 
-	if (input == 0)
-		fflush(stream);
-	else
-		return (-1);
-	input = 0;
+	charcount = 0;
+	iterations = 1;
+	j = 0;
+	i = -1;
 
-	buffer = malloc(sizeof(char) * 120);
-	if (!buffer)
-		return (-1);
-
-	while (c != '\n')
+	while (i != 0)
 	{
-		r = read(STDIN_FILENO, &c, 1);
-		if (r == -1 || (r == 0 && input == 0))
-		{
-			free(buffer);
-			return (-1);
-		}
-		if (r == 0 && input != 0)
-		{
-			input++;
+		i = read(fd, (*buffer + j), 1);
+
+		if (i <= 0)
 			break;
+
+		charcount++;
+
+		if ((*buffer + j++)[0] == '\n')
+			break;
+
+		if (charcount % *limit == 0)
+		{
+			iterations++;
+			*buffer = _realloc(*buffer, charcount, (*limit * iterations));
 		}
-
-		if (input >= 120)
-			buffer = _realloc(buffer, input, input + 1);
-
-		buffer[input] = c;
-		input++;
 	}
-	buffer[input] = '\0';
 
-	assign_lineptr(lineptr, n, buffer, input);
+	return ((ssize_t)charcount);
+}
 
-	ret = input;
-	if (r != 0)
-		input = 0;
-	return (ret);
+/**
+ * _filemode - finds file mode of standard input
+ * @fd: STDIN_FILENO
+ *
+ * Return: 1 a device like a terminal, 0 a FIFO special file, or a pipe
+ */
+int _filemode(int fd)
+{
+	int result = -1;
+	struct stat buf;
+
+	fstat(fd, &buf);
+
+	switch (buf.st_mode & S_IFMT)
+	{
+	case S_IFCHR:
+		result = 1;
+		break;
+	case S_IFIFO:
+		result = 0;
+		break;
+	default:
+		break;
+	}
+
+	return (result);
 }
