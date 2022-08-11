@@ -1,101 +1,66 @@
 #include "shell.h"
+
 /**
- * _getline - gets a line from fd or std input
- * @lineptr: buffer to fill line with
- * @fd: file descriptor
- * Return: num of characters
- */
-int _getline(char **lineptr, int fd)
+* _getline - Read The Input By User From Stdin
+* Return: Input
+*alx-school-- shell
+*/
+char *_getline()
 {
-	int size = 1025;
-	int old_size = 0;
-	int r = 1;
-	int sum = 0;
-	static char buffer[1025];
-	static int begin;
-	static int end;
-	int c = 0;
-	int d;
+int i, buffsize = BUFSIZE, rd;
+char c = 0;
+char *buff = malloc(buffsize);
 
-	if (fd == -2)
-	{
-		begin = 0;
-		end = 0;
-	}
+if (buff == NULL)
+{
+free(buff);
+return (NULL);
+}
 
-	if (lineptr == NULL)
-	{
-		return (0);
-	}
-	if (*lineptr == NULL)
-	{
-		*lineptr = malloc(sizeof(char) * size + 1);
-		if (*lineptr == NULL)
-			return (-1);
-	}
+for (i = 0; c != EOF && c != '\n'; i++)
+{
+fflush(stdin);
+rd = read(STDIN_FILENO, &c, 1);
+if (rd == 0)
+{
+free(buff);
+exit(EXIT_SUCCESS);
+}
+buff[i] = c;
+if (buff[0] == '\n')
+{
+free(buff);
+return ("\0");
+}
+if (i >= buffsize)
+{
+buff = _realloc(buff, buffsize, buffsize + 1);
+if (buff == NULL)
+{
+return (NULL);
+}
+}
+}
+buff[i] = '\0';
+hashtag_handle(buff);
+return (buff);
+}
 
-	while (1)
-	{
-		if (begin == end)
-		{
-			while (sum < 1024 && r != 0)
-			{
-				r = read(fd, buffer + sum, 1024 - sum);
-				begin = 0;
-				sum += r;
-				end = sum;
-				/*printf("r : %d\n", r);*/
-				for (d = 0; r != 0 && d < end; d++)
-					if (buffer[d] == '\n')
-						r = 0;
-			}
-			if (sum == 0)
-			{
-				buffer[0] = 0;
-				return (sum);
-			}
-			buffer[sum] = 0;
-			sum = 0;
-		}
-		for (; buffer[begin]; begin++)
-		{
-			if (begin == 1024)
-			{
-				/*free(buffer);*/
-				/*(*lineptr)[c] = EOF;*/
-				/*return (c);*/
-				break;
-			}
-			/*printf("beginning for\n");//debug check*/
-			if (buffer[begin] == '\n')
-			{
-				(*lineptr)[c] = '\n';
-				begin++;
-				c++;
-				(*lineptr)[c] = '\0';
-				return (c);
-			}
-			else
-			{
-				(*lineptr)[c] = buffer[begin];
-			}
-			c++;
-		}
-		if (c + begin >= 1024)
-		{
-			old_size = size;
-			size = size + 1024;
-			*lineptr = _realloc(*lineptr, old_size, size);
-			if (*lineptr == NULL)
-			{
-				return (-1);
-			}
-		}
-		else
-		{
-			(*lineptr)[old_size + begin] = 0;
-			return (c);
-		}
-		/*printf("j: %d, i:%d, r:%d\n", j, i ,r);*/
-	}
+/**
+ * hashtag_handle - remove everything after #
+ * @buff: input;
+ * Return:void
+ */
+void hashtag_handle(char *buff)
+{
+int i;
+
+for (i = 0; buff[i] != '\0'; i++)
+{
+if (buff[i] == '#')
+{
+buff[i] = '\0';
+break;
+}
+}
 }
