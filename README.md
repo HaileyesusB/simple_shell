@@ -105,6 +105,6 @@ Program that runs simple shell included contain helper functions and built-ins
 
 
 
-1. Adeboye Victor Oyekanmi
+1.Haileyesus Belew
 
-1. Favour Wright 
+2.Behailu Simachew
